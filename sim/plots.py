@@ -19,6 +19,7 @@ FIGDIR = os.path.join(HERE, "figures")
 SUMMARY = os.path.join(HERE, "results", "summary.txt")
 
 plt.rcParams.update({
+    "pdf.fonttype": 42,   # embed TrueType (IEEE PDF eXpress-safe)
     "font.family": "serif",
     "font.size": 8,
     "axes.titlesize": 8,

@@ -94,6 +94,8 @@ class Config:
     policy: str = "P3"                # P0 | P1 | P2 | P3
     tau: float = 30.0                 # reconciliation interval (P2, P3)
     fresh_guard: bool = False         # P3 variant: poll before every sell
+    freeze_floors: bool = True        # P3 component: freeze on shortfall
+    sell_guard: bool = True           # P3 component: pre-sell floor check
     retry_mode: str = "target"        # target | delta
 
     # burstiness (two-state modulated fault process; long-run average rates
@@ -136,6 +138,10 @@ class Config:
             lab = self.policy
         if self.fresh_guard:
             lab += "+fg"
+        if self.policy == "P3" and not self.freeze_floors:
+            lab += "-fz"
+        if self.policy == "P3" and not self.sell_guard:
+            lab += "-sg"
         if self.retry_mode == "delta":
             lab += "+dr"
         if self.bursty:
@@ -185,6 +191,7 @@ class Metrics:
     freezes: int = 0
     false_freezes: int = 0
     realigns: int = 0
+    writedown_shares: int = 0      # realignment cuts charged to agent books
     drift_integral: float = 0.0    # share-seconds of unexplained ledger-venue divergence
     frozen_integral: float = 0.0   # agent-seconds frozen
     det_lats: list = field(default_factory=list)    # drift detection latencies (s)
@@ -370,7 +377,8 @@ class Sim:
         if s not in self.realign_pending:
             self.realign_pending.add(s)
             self._push(self.t + self.cfg.realign_time, "realign", s)
-            if self.cfg.policy == "P3" and s not in self.frozen_syms:
+            if (self.cfg.policy == "P3" and self.cfg.freeze_floors
+                    and s not in self.frozen_syms):
                 self.frozen_syms.add(s)
                 self.m.freezes += 1
                 if not self.drift_events[s]:
@@ -420,6 +428,7 @@ class Sim:
                             rem -= 1
                     for i, c in enumerate(cuts):
                         self.b[i][s] = max(0, self.b[i][s] - c)
+                    self.m.writedown_shares += sum(cuts)
                 else:
                     self.hhat[s] -= need              # recognized deficit
         self._rebase_truth(s)
@@ -462,7 +471,7 @@ class Sim:
             if delta == 0:
                 return
 
-        if cfg.policy == "P3" and delta < 0:
+        if cfg.policy == "P3" and delta < 0 and cfg.sell_guard:
             if cfg.fresh_guard:
                 self._poll()
             self._check_sym(s)
@@ -709,6 +718,7 @@ def run_once(cfg: Config) -> dict:
         "data_calls_per_day": m.data_calls / days,
         "freezes_per_day": m.freezes / days,
         "false_freezes_per_day": m.false_freezes / days,
+        "writedowns_per_day": m.writedown_shares / days,
         "availability": 1.0 - m.frozen_integral / (cfg.n_agents * cfg.horizon),
         "drift_share_hours_per_day": m.drift_integral / 3600.0 / days,
         "det_lat_median": _percentile(m.det_lats, 0.5),

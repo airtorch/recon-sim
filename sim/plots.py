@@ -292,6 +292,22 @@ def summary(rows):
              f"calls={stat(d, 'data_calls_per_day', '{:.0f}')} "
              f"avail={stat(d, 'availability', '{:.4f}')}")
     line()
+    line("=== E5b component ablation ===")
+    for st_ in sorted({r["poll_staleness"] for r in sel(rows, experiment="components")}):
+        for pol in sorted({r["policy"] for r in sel(rows, experiment="components",
+                                                    poll_staleness=st_)}):
+            d = sel(rows, experiment="components", policy=pol, poll_staleness=st_)
+            line(f"[stale={st_:4.1f} {pol:10s}] unsafe={stat(d, 'unsafe_shares_per_day', '{:.3f}')} "
+                 f"avail={stat(d, 'availability', '{:.4f}')} "
+                 f"freezes={stat(d, 'freezes_per_day')} "
+                 f"refused={stat(d, 'refused_per_day')} "
+                 f"writedowns={stat(d, 'writedowns_per_day', '{:.0f}')}")
+    line()
+    line("=== writedowns charged to agent books (intensity x=1) ===")
+    for pol in STYLE:
+        d = sel(rows, experiment="intensity", policy=pol, fault_x=1.0)
+        line(f"[{pol:12s}] writedowns={stat(d, 'writedowns_per_day')}")
+    line()
     line("=== E6 bursty vs memoryless (matched avg rates) ===")
     for pol in sorted({r["policy"] for r in sel(rows, experiment="bursty")}):
         d = sel(rows, experiment="bursty", policy=pol)

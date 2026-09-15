@@ -49,7 +49,7 @@ def build_jobs(seeds: int, seeds_scale: int):
     add("tradeoff", replace(base, policy="P1"), seeds)
     for tau in (60.0, 300.0, 900.0, 3600.0):
         add("tradeoff", replace(base, policy="P2", tau=tau), seeds)
-    for tau in (15.0, 30.0, 120.0, 300.0):
+    for tau in (15.0, 30.0, 120.0, 300.0, 900.0, 3600.0):
         add("tradeoff", replace(base, policy="P3", tau=tau), seeds)
     add("tradeoff", replace(base, policy="P3", tau=30.0, fresh_guard=True), seeds)
 
@@ -72,6 +72,17 @@ def build_jobs(seeds: int, seeds_scale: int):
                             retry_mode="delta"), seeds)
     add("ablation", replace(base, policy="P3", tau=30.0, fault_x=2.0,
                             fresh_guard=True), seeds)
+
+    # E5b: component ablation (freeze floors vs sell guard), including the
+    # stale-observation regime where the freeze matters
+    for st_ in (2.0, 10.0, 30.0):
+        add("components", replace(base, policy="P3", tau=30.0,
+                                  poll_staleness=st_), seeds)
+        add("components", replace(base, policy="P3", tau=30.0,
+                                  poll_staleness=st_,
+                                  freeze_floors=False), seeds)
+    add("components", replace(base, policy="P3", tau=30.0,
+                              sell_guard=False), seeds)
 
     # E6: bursty vs memoryless incident faults (matched long-run rates)
     for pol, tau in (("P0", 30.0), ("P1", 30.0), ("P2", 900.0), ("P3", 30.0)):

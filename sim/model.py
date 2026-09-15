@@ -702,6 +702,7 @@ def run_once(cfg: Config) -> dict:
         "tau": cfg.tau,
         "fault_x": cfg.fault_x,
         "n_agents": cfg.n_agents,
+        "wake_mean": cfg.wake_mean,
         "poll_staleness": cfg.poll_staleness,
         "report_lag_mean": cfg.report_lag_mean,
         "retry_mode": cfg.retry_mode,

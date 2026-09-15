@@ -89,6 +89,17 @@ def build_jobs(seeds: int, seeds_scale: int):
         add("bursty", replace(base, policy=pol, tau=tau, bursty=False), seeds)
         add("bursty", replace(base, policy=pol, tau=tau, bursty=True), seeds)
 
+    # E8: activity-gated detection. P1 reconciles only when orders flow, so
+    # its detection latency is gated on agent activity; P2/P3 detect within
+    # tau regardless. Sweep the mean decision interval from the baseline
+    # (15 min) to a dormant fleet (24 h).
+    for wm in (900.0, 3600.0, 14400.0, 86400.0):
+        add("activity", replace(base, policy="P1", wake_mean=wm), seeds)
+        add("activity", replace(base, policy="P2", tau=900.0, wake_mean=wm),
+            seeds)
+        add("activity", replace(base, policy="P3", tau=30.0, wake_mean=wm),
+            seeds)
+
     # E7: fault-model robustness, one-factor-at-a-time wide sweeps (P0 vs P3)
     grid: list[tuple[str, Config]] = []
     for v in (0.03, 0.12, 0.30, 0.60):

@@ -130,9 +130,20 @@ def fig_tradeoff(rows):
         pts.sort()
         ax.plot([p[0] for p in pts], [p[1] for p in pts], ls="-", color=color,
                 marker=marker, label=f"{base} ($\\tau$ sweep)", zorder=3)
+        # Hand-tuned label offsets so labels never collide with each other
+        # or with the curves. P3's interior 900s/300s points are left
+        # unlabeled: they are not cited in the text and the elbow region
+        # is too crowded to label them unambiguously.
+        off = {("P2", 3600): (3, 5), ("P2", 900): (3, 5),
+               ("P2", 300): (3, 5), ("P2", 60): (3, 5),
+               ("P3", 3600): (-16, 5), ("P3", 120): (-16, -11),
+               ("P3", 30): (-6, -12), ("P3", 15): (2, 6)}
         for x, y, tau in pts:
+            if (base, int(tau)) not in off:
+                continue
             ax.annotate(f"{int(tau)}s", (x, y), textcoords="offset points",
-                        xytext=(3, 4), fontsize=6, color=color)
+                        xytext=off[(base, int(tau))],
+                        fontsize=6, color=color, zorder=5)
 
     x, y, _, _ = point("P0")
     ax.scatter([max(x, 0.6)], [y], color="#c0392b", marker="o", zorder=4,
@@ -151,8 +162,9 @@ def fig_tradeoff(rows):
     ax.set_ylim(bottom=0, top=1500)
     ax.set_xlabel("Reconciliation overhead (data calls/day)")
     ax.set_ylabel("Unsafe executions (shares/day)")
-    ax.legend(loc="lower left", handlelength=1.4, framealpha=0.9,
-              borderaxespad=0.4)
+    ax.legend(loc="lower left", handlelength=1.2, framealpha=0.9,
+              borderaxespad=0.4, fontsize=6, labelspacing=0.3,
+              borderpad=0.35, handletextpad=0.5)
     fig.savefig(os.path.join(FIGDIR, "fig_tradeoff.pdf"))
     plt.close(fig)
 

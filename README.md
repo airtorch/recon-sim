@@ -8,7 +8,7 @@ retries, agent crashes, and out-of-band trades by the account holder.
 
 This code accompanies a paper currently under double-blind review.
 `PROOFS.md` contains the full case-analysis proofs of the paper's
-Propositions 1–3.
+Propositions 1–3 and the supplementary observation-floor derivation.
 
 ## Reconciliation policies
 
@@ -35,7 +35,7 @@ python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
 ## Reproducing the paper's results
 
 ```bash
-# ~7,200 simulation runs, a few minutes on a laptop (all cores):
+# ~7,800 simulation runs, a few minutes on a laptop (all cores):
 .venv/bin/python sim/run.py            # writes results/results.csv
 
 # figures (PDF) and the aggregate text summary:
@@ -63,6 +63,13 @@ python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
   interval from 15 minutes to 24 hours; per-order reconciliation (P1) observes
   the account only while orders flow, so its detection latency degrades with
   dormancy while periodic policies stay bounded by tau.
+- **E10 `trace:*`** — production schedule replay: agent decision times come
+  from real (anonymized) production schedules in `sim/traces/wake_times.csv`
+  instead of Poisson clocks. Two ten-agent cohorts over a 5-day window: an
+  `active` cohort (top decile by activity) and a `median` cohort (ranks
+  45-54 of 98; one decision per ~14.5 h, longest fleet-wide gap ~20 h). The
+  CSV contains only cohort, agent index, and seconds offsets — no
+  identifiers or absolute dates.
 
 Baseline parameters are in `Config` in `sim/model.py`; every experiment
 configuration is defined in `build_jobs()` in `sim/run.py`. All randomness is

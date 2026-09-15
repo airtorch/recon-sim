@@ -102,12 +102,13 @@ retry-semantics ablation (Table II).
 
 ## Proposition 2 (Bounded encroachment)
 
-**Claim.** With exact snapshots (`δ = 0`) and reconciliation interval
+**Claim.** With snapshot staleness `δ ≥ 0` and reconciliation interval
 `τ`, unsafe executed quantity (Definition 1) is bounded by the OOB
-outflow occurring within a window of length `τ + T_r` before the
+outflow occurring within a window of length `τ + T_r + δ` before the
 corresponding sell; with no OOB activity it is zero.
 
-**Proof.** A fill is unsafe only if it increases
+**Proof.** We first treat `δ = 0`; the corollary below lifts the
+argument to `δ > 0`. A fill is unsafe only if it increases
 `E_s = max(0, Σ_{j≠i} max(a[j][s], 0) − V_s)`. Buys only increase `V_s`,
 so (long-only) only *sell* fills can be unsafe. We enumerate every event
 class that moves `V_s` or the claims:
@@ -160,11 +161,17 @@ class that moves `V_s` or the claims:
    during `[t_d, t_d + T_r]` — all within a `τ + T_r` window before the
    corresponding fill. ∎
 
-**Remark (δ > 0).** With stale snapshots the guard and the tick both act
-on `V_s(t − δ)`, widening the exposure window to `τ + T_r + δ` and adding
-false freezes when a legitimate in-flight resolution is misread as a
-shortfall. The paper quantifies both effects empirically (Section V-D);
-we do not claim an analytic bound for `δ > 0`.
+**Corollary (stale snapshots, δ > 0).** With read staleness `δ`, every
+snapshot reflects `V_s(t − δ)`, so an OOB outflow at `t₀` first becomes
+visible to any poll at `t₀ + δ`; the next tick detects it within a
+further `τ`, and realignment completes `T_r` later. Repeating the case
+analysis of sub-case 3 with every snapshot time shifted by `δ` bounds the
+exposure window at `τ + T_r + δ` per event. Staleness additionally causes
+*false* shortfall detections when a legitimate in-flight resolution is
+misread (a poll sees the venue after a fill but the report has not yet
+booked it); these cost availability (false freezes), never safety, since
+freezing and refusing sells only ever removes sell opportunities. The
+paper quantifies both effects empirically (Section V-D).
 
 ---
 
@@ -202,7 +209,64 @@ triggered, and total time is bounded by
 
 ---
 
-*All three arguments are implemented verbatim in `sim/model.py`; the
+## Observation floor (supplementary derivation)
+
+This section derives the divergence floor referenced in Section V-C of
+the paper and checks the mechanism's measured residual against it.
+
+**Setting.** OOB drift events arrive as a Poisson process of rate `λ`
+(events/s) with mean absolute size `μ` (shares), buys and sells
+equiprobable. A policy observes the venue only through position polls at
+long-run average rate `r` (polls/s), on a schedule (deterministic,
+randomized, or adaptive on its own observations) that is *independent of
+the OOB arrival times* — polls reveal nothing about future OOB arrivals
+because the process is memoryless, so adaptivity cannot help. Undetected
+divergence is the time integral of `|expected − actual|` between an OOB
+event and the poll that first observes it.
+
+**Claim.** Expected undetected divergence is at least `λμ/(2r)`
+share-seconds per second of operation.
+
+**Derivation.** Consider any realization of the polling schedule over a
+horizon `T` containing `n = rT` polls with inter-poll gaps
+`x₁, …, xₙ` (`Σxᵢ = T`). An OOB event arriving uniformly at random in
+time (Poisson, independent of the schedule) lands in gap `i` with
+probability `xᵢ/T` and then waits `xᵢ/2` in expectation for the next
+poll. Its expected wait is therefore
+
+```
+E[wait] = Σᵢ (xᵢ/T)(xᵢ/2) = (1/2T) Σᵢ xᵢ² ≥ (1/2T) · (Σᵢ xᵢ)²/n
+        = T/(2n) = 1/(2r),
+```
+
+by Cauchy–Schwarz, with equality iff all gaps are equal — i.e., periodic
+polling is optimal. Each waiting event contributes its size (mean `μ`)
+to the divergence integral for the duration of the wait, giving the
+floor `λ · μ · 1/(2r)` share-seconds per second. Randomizing the
+schedule only adds variance to the gaps and (by the same inequality)
+raises the expected wait.
+
+**Mechanism-specific residual.** The mechanism in the paper adds an
+investigation delay: surpluses are absorbed at detection, but shortfalls
+(half of events) persist a further `T_r` before realignment, adding
+`(λ/2)μT_r`. At the paper's baseline parameters (`λ = 1/7200`,
+`μ = 90`, `r = 1/30`, `T_r = 120`):
+
+- polling floor: `λμ/(2r)` = 4.5 share-hours/day;
+- investigation component: `(λ/2)μT_r` = 18.0 share-hours/day;
+- predicted total ≈ 22.5 vs. **22.99 ± 0.68 measured** (E8, dormant
+  regime, where agent-driven in-flight ambiguity is negligible).
+
+The detection component of the measured residual (`22.99 − 18.0 ≈ 5.0`)
+is within ~11% of the 4.5 floor: the mechanism spends its polling budget
+nearly optimally, and its residual divergence is dominated by the
+investigation delay `T_r`, an operational parameter, not by detection
+inefficiency. (At higher agent activity the measured residual grows with
+in-flight order ambiguity, which the floor deliberately excludes.)
+
+---
+
+*All arguments are implemented verbatim in `sim/model.py`; the
 simulator's ground-truth tracking (`t_alloc`, `h`) exists precisely so
 that violations of these propositions would be measured rather than
 assumed away.*

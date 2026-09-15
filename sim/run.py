@@ -100,6 +100,20 @@ def build_jobs(seeds: int, seeds_scale: int):
         add("activity", replace(base, policy="P3", tau=30.0, wake_mean=wm),
             seeds)
 
+    # E10: production trace replay. Decision times come from real agent
+    # schedules (5-day window, anonymized offsets in sim/traces/): the
+    # "active" cohort (top-10 agents, 1,757 decisions/day, per-agent rates
+    # spanning 27x) and the "median" cohort (ranks 45-54 of 98, 17/day,
+    # longest fleet-wide silent gap 20.1 h).
+    trace = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                         "traces", "wake_times.csv")
+    if os.path.exists(trace):
+        for cohort in ("active", "median"):
+            for pol, tau in (("P1", 30.0), ("P2", 900.0), ("P3", 30.0)):
+                add(f"trace:{cohort}",
+                    replace(base, policy=pol, tau=tau,
+                            wake_trace=trace, wake_cohort=cohort), seeds)
+
     # E7: fault-model robustness, one-factor-at-a-time wide sweeps (P0 vs P3)
     grid: list[tuple[str, Config]] = []
     for v in (0.03, 0.12, 0.30, 0.60):

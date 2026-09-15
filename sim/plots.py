@@ -49,7 +49,8 @@ def load():
     with open(RESULTS) as f:
         for r in csv.DictReader(f):
             for k, v in r.items():
-                if k in ("experiment", "policy", "base_policy", "retry_mode"):
+                if k in ("experiment", "policy", "base_policy", "retry_mode",
+                         "wake_cohort"):
                     continue
                 r[k] = float(v) if v not in ("", "None") else None
             rows.append(r)
@@ -329,6 +330,21 @@ def summary(rows):
                  f"detected={stat(d, 'detected_fraction', '{:.3f}')} "
                  f"calls={stat(d, 'data_calls_per_day', '{:.0f}')} "
                  f"unsafe={stat(d, 'unsafe_shares_per_day', '{:.3f}')}")
+    line()
+    line("=== E10 production trace replay ===")
+    for exp in sorted({r["experiment"] for r in rows
+                       if str(r["experiment"]).startswith("trace:")}):
+        for pol in sorted({r["policy"] for r in sel(rows, experiment=exp)}):
+            d = sel(rows, experiment=exp, policy=pol)
+            line(f"[{exp:13s} {pol:12s}] "
+                 f"detlat_med={stat(d, 'det_lat_median', '{:.0f}')} "
+                 f"detlat_p90={stat(d, 'det_lat_p90', '{:.0f}')} "
+                 f"drift={stat(d, 'drift_share_hours_per_day')} "
+                 f"detected={stat(d, 'detected_fraction', '{:.3f}')} "
+                 f"calls={stat(d, 'data_calls_per_day', '{:.0f}')} "
+                 f"unsafe={stat(d, 'unsafe_shares_per_day', '{:.3f}')} "
+                 f"avail={stat(d, 'availability', '{:.4f}')} "
+                 f"orders={stat(d, 'orders_per_day', '{:.0f}')}")
     line()
     line("=== E7 robustness grid (P0 vs P3(30)) ===")
     worst_p3, worst_cfg, min_ratio = 0.0, "", float("inf")

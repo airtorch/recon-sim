@@ -79,7 +79,7 @@ def sel(rows, **kv):
 def fig_intensity(rows):
     data = sel(rows, experiment="intensity")
     xs = sorted({r["fault_x"] for r in data})
-    fig, axes = plt.subplots(2, 1, figsize=(3.45, 3.6), sharex=True)
+    fig, axes = plt.subplots(2, 1, figsize=(3.45, 3.15), sharex=True)
     for pol, st in STYLE.items():
         ms, cs, ds, dcs = [], [], [], []
         for x in xs:
@@ -98,7 +98,10 @@ def fig_intensity(rows):
     axes[1].set_xscale("log", base=2)
     axes[1].set_xticks(xs)
     axes[1].set_xticklabels([f"{x:g}" for x in xs])
-    axes[0].legend(ncol=2, columnspacing=0.8, handlelength=1.6, loc="upper left")
+    # legend above the top panel so it never covers data
+    axes[0].legend(ncol=2, columnspacing=0.8, handlelength=1.6,
+                   loc="lower center", bbox_to_anchor=(0.5, 1.0),
+                   frameon=False, borderaxespad=0.2)
     fig.savefig(os.path.join(FIGDIR, "fig_intensity.pdf"))
     plt.close(fig)
 
@@ -148,7 +151,8 @@ def fig_tradeoff(rows):
     ax.set_ylim(bottom=0, top=1500)
     ax.set_xlabel("Reconciliation overhead (data calls/day)")
     ax.set_ylabel("Unsafe executions (shares/day)")
-    ax.legend(loc="upper right", handlelength=1.4)
+    ax.legend(loc="lower left", handlelength=1.4, framealpha=0.9,
+              borderaxespad=0.4)
     fig.savefig(os.path.join(FIGDIR, "fig_tradeoff.pdf"))
     plt.close(fig)
 
@@ -210,7 +214,7 @@ def fig_staleness(rows):
 def fig_scale(rows):
     data = sel(rows, experiment="scale")
     xs = sorted({r["n_agents"] for r in data})
-    fig, axes = plt.subplots(2, 1, figsize=(3.45, 3.6), sharex=True)
+    fig, axes = plt.subplots(2, 1, figsize=(3.45, 3.15), sharex=True)
     for pol, st in STYLE.items():
         cs_, cc_, us_, uc_ = [], [], [], []
         for x in xs:
@@ -225,7 +229,10 @@ def fig_scale(rows):
     axes[1].set_ylim(bottom=0)
     axes[1].set_ylabel("Unsafe executions\n(shares/day)")
     axes[1].set_xlabel("Number of agents on one account")
-    axes[0].legend(ncol=2, columnspacing=0.8, handlelength=1.6, loc="upper left")
+    # legend above the top panel so it never covers data
+    axes[0].legend(ncol=2, columnspacing=0.8, handlelength=1.6,
+                   loc="lower center", bbox_to_anchor=(0.5, 1.0),
+                   frameon=False, borderaxespad=0.2)
     fig.savefig(os.path.join(FIGDIR, "fig_scale.pdf"))
     plt.close(fig)
 

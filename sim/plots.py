@@ -137,7 +137,7 @@ def fig_tradeoff(rows):
         off = {("P2", 3600): (3, 5), ("P2", 900): (3, 5),
                ("P2", 300): (3, 5), ("P2", 60): (3, 5),
                ("P3", 3600): (-16, 5), ("P3", 120): (-16, -11),
-               ("P3", 30): (-6, -12), ("P3", 15): (2, 6)}
+               ("P3", 30): (-6, -12), ("P3", 15): (0, 6)}
         for x, y, tau in pts:
             if (base, int(tau)) not in off:
                 continue
@@ -153,6 +153,8 @@ def fig_tradeoff(rows):
     x, y, _, _ = point("P1")
     ax.scatter([x], [y], color="#7f8c8d", marker="s", zorder=4,
                label="P1 per-order")
+    ax.annotate("P1", (x, y), textcoords="offset points", xytext=(4, -9),
+                fontsize=6, color="#7f8c8d", zorder=5)
     x, y, _, _ = point("P3(30)+fg")
     ax.scatter([x], [y], color="#16a085", marker="*", s=40, zorder=4,
                label="P3+fresh guard (30 s)")
@@ -160,6 +162,7 @@ def fig_tradeoff(rows):
     ax.set_xscale("log")
     ax.set_yscale("symlog", linthresh=0.1)
     ax.set_ylim(bottom=0, top=1500)
+    ax.set_xlim(right=11000)   # headroom so the 15s label stays inside
     ax.set_xlabel("Reconciliation overhead (data calls/day)")
     ax.set_ylabel("Unsafe executions (shares/day)")
     ax.legend(loc="lower left", handlelength=1.2, framealpha=0.9,
